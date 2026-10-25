@@ -218,7 +218,20 @@ Then the real test — deliverability:
 
 1. Open <https://www.mail-tester.com/>
 2. Send an email **from** `steve@aipalassist.com` to the address it shows
-3. Target **10/10**
+3. Go **back to the page** and click "Check your score" — target **10/10**
+
+> **mail-tester does not email you the score.** The result is rendered on the web
+> page for the unique address you were given (`test-xxxx@srv1.mail-tester.com`).
+> If you close the tab before checking, the result for that address is lost — get
+> a new one and resend.
+
+For a scriptable check that *does* reply with a report, send to
+`check-auth@verifier.port25.com` and read the reply from the mailbox:
+
+```bash
+docker exec $(docker ps -qaf name=dovecot-mailcow) \
+  doveadm fetch -u info@aipalassist.com "text" mailbox INBOX | grep -a "SPF check"
+```
 
 If mail-tester flags something, see
 [05-troubleshooting.md](05-troubleshooting.md).
