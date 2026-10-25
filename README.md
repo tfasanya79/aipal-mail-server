@@ -23,7 +23,8 @@ sudo ./scripts/01-bootstrap-host.sh
 sudo ./scripts/02-install-mailcow.sh
 sudo ./scripts/03-caddy-setup.sh
 sudo ./scripts/04-deploy-certs.sh
-# → add domain + mailboxes in https://mail.aipalassist.com (admin/moohoo)
+# → add domain + mailboxes at https://mail.aipalassist.com/admin/ (admin/moohoo)
+#   NOTE: /admin/ is the ADMIN login; the root page "/" is the mailbox login
 sudo ./scripts/05-dns-records.sh    # enter MX/SPF/DKIM/DMARC in GoDaddy
 # → set PTR in Hostinger hPanel
 ./scripts/07-verify.sh

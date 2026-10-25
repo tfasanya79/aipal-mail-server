@@ -7,37 +7,62 @@ Symptoms first, then cause. `sudo ./scripts/00-preflight.sh` and
 
 ## Admin login
 
-### "Login failed" with `admin` / `moohoo`
+### "Login failed" with `admin` / `moohoo` (or any admin password)
 
-The default account **is** created as `admin` / `moohoo` — mailcow inserts a
-hardcoded `{SSHA256}` hash at first boot. If that fails, the UI received a
-different password than you think. Usual causes:
+**This is almost always the wrong login page, not a wrong password.**
 
-- **Browser password manager autofilled a stale password** over the field. The
-  autofill dropdown is a strong tell. Use a private/incognito window, or clear
-  the saved entry for this site, and type the password manually.
-- **Using the "User Login" (email address) form** with a bare `admin`. That form
-  wants a mailbox address; the admin login is the link at the bottom
-  ("Log in as admin") or just submit `admin` as the username.
-- A trailing space pasted along with the password.
+mailcow serves two different logins:
 
-Confirm what the database actually holds before assuming it's broken:
+| Page | URL | Purpose |
+| --- | --- | --- |
+| **User Login** | `https://<host>/` | **mailbox** login — the "Email address" form |
+| **Admin Login** | `https://<host>/admin/` | **admin** panel — what you want |
+
+The root page accepts an address like `steve@example.com`. If you type `admin`
+there, mailcow tries to authenticate a *mailbox* named `admin`, finds none, and
+logs `Invalid password for admin` — identical wording to a genuinely bad password,
+which is why this is so confusing.
+
+Go to **`https://mail.aipalassist.com/admin/`** (note the trailing slash; `/admin`
+301-redirects there), or click **"Log in as admin"** at the bottom of the root page.
+
+Confirm it works without a browser:
+
+```bash
+curl -s -c /tmp/j -o /dev/null https://mail.aipalassist.com/admin/
+curl -s -b /tmp/j -c /tmp/j -o /dev/null -w '%{http_code} -> %{redirect_url}\n' \
+  -X POST https://mail.aipalassist.com/admin/ \
+  --data-urlencode 'login_user=admin' --data-urlencode 'pass_user=<PASSWORD>'
+# success prints: 302 -> https://mail.aipalassist.com/admin/dashboard
+rm -f /tmp/j
+```
+
+Next, confirm the *server's* view of the password before changing anything.
+`scripts/08-set-admin-password.sh` writes a mailcow-native hash **and** verifies
+it with mailcow's own `verify_hash()`, so running it is also a positive test that
+the account is healthy. You can read the stored row yourself too:
 
 ```bash
 CONF=/opt/mailcow-dockerized/mailcow.conf
 DP=$(sudo sed -n 's/^DBPASS=//p' $CONF); DU=$(sudo sed -n 's/^DBUSER=//p' $CONF); DN=$(sudo sed -n 's/^DBNAME=//p' $CONF)
 M=$(docker ps -qaf name=mysql-mailcow)
 docker exec -e MYSQL_PWD="$DP" "$M" mysql -u "$DU" -N -B "$DN" \
-  -e "select username, active, superadmin, password from admin;"
+  -e "select username, active, superadmin, left(password,20) from admin;"
 ```
 
 A hash starting `{SSHA256}K8eVJ6YsZbQCfuJvSUbaQ...` is mailcow's built-in
 `moohoo` default, untouched.
 
+Only after ruling out the `/admin/` issue should you suspect a stale autofilled
+password (the autofill dropdown is the tell — use a private window or clear the
+saved entry) or a trailing space pasted along with the password.
+
+If the password genuinely is unknown, reset it — no UI or API key needed:
+
 ### Reset the admin password from the host
 
-No UI and no API key required — it writes a properly-formatted `{SSHA256}` hash
-and proves it verifies:
+It writes a properly-formatted hash and proves it verifies with mailcow's own
+`verify_hash()`:
 
 ```bash
 sudo ./scripts/08-set-admin-password.sh              # generate a random password

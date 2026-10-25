@@ -143,11 +143,17 @@ maintenance requirement of the Caddy-fronted setup: Caddy renews, this job syncs
 
 ## 6 — Add the domain and a mailbox in the UI
 
-Open <https://mail.aipalassist.com> and log in with the defaults:
+Open the **admin** login (not the root mailbox login) and log in with the
+defaults:
 
 ```
+https://mail.aipalassist.com/admin/
 admin / moohoo
 ```
+
+> The root page `/` is the **mailbox** (email address) login. Logging in there as
+> `admin` always fails — see
+> [05-troubleshooting.md](05-troubleshooting.md#login-failed-with-admin--moohoo-or-any-admin-password).
 
 **Change that password immediately.**
 

@@ -60,18 +60,17 @@ fi
 ok "Admin '${ADMIN_USER}' is active and password updated"
 
 # ---- Prove the new hash verifies -------------------------------------------
+# Use mailcow's OWN verify_hash(), not a reimplementation: a self-consistent
+# check passes even if the algorithm is wrong (that mistake hid the /admin/ bug).
 VERIFIED="$(docker exec -e MC_PW="${PASSWORD}" -e MC_HASH="${HASH}" "${PHP_C}" php -r '
-	$h = getenv("MC_HASH"); $p = getenv("MC_PW");
-	$raw = base64_decode(substr($h, 9));
-	$digest = substr($raw, 0, 32);
-	$salt   = substr($raw, 32);
-	echo hash("sha256", $p . $salt, true) === $digest ? "OK" : "FAIL";
-')"
+	require "/web/inc/functions.inc.php";
+	echo verify_hash(getenv("MC_HASH"), getenv("MC_PW")) ? "OK" : "FAIL";
+' 2>/dev/null || echo FAIL)"
 
 if [[ "${VERIFIED}" == "OK" ]]; then
-	ok "Hash verified against the new password"
+	ok "Verified with mailcow's own verify_hash()"
 else
-	die "Hash verification failed — do not trust this password"
+	die "mailcow's verify_hash() rejected the new password — do not trust it"
 fi
 
 echo
@@ -80,5 +79,7 @@ if [[ ${GENERATED} -eq 1 ]]; then
 	printf '\n    %s\n\n' "${PASSWORD}"
 	warn "Change it immediately: UI -> Configuration -> Admins (or Account)."
 fi
-log "Log in at https://${MAIL_HOSTNAME}/ using username '${ADMIN_USER}'"
+log "Log in at:  https://${MAIL_HOSTNAME}/admin/"
+warn "That is the ADMIN login page. The root page (/ ) is the MAILBOX login"
+warn "and will reject 'admin' with 'Login failed' / 'Invalid password'."
 hr
