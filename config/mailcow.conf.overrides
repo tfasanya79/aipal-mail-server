@@ -1,0 +1,25 @@
+# =============================================================================
+# AiPal overrides applied to /opt/mailcow-dockerized/mailcow.conf
+# scripts/02-install-mailcow.sh rewrites these keys in place (idempotent).
+#
+# Rationale: this host already runs Caddy on 0.0.0.0:80/443 for other sites
+# (aipal-v2, portfolio, gambler, ...). Mailcow therefore binds loopback only
+# and Caddy proxies mail.aipalassist.com -> 127.0.0.1:8080.
+# =============================================================================
+
+MAILCOW_HOSTNAME=mail.aipalassist.com
+ADDITIONAL_SERVER_NAMES=autodiscover.aipalassist.com,autoconfig.aipalassist.com
+
+# Bind loopback only — never expose 8080/8443 publicly
+HTTP_BIND=127.0.0.1
+HTTP_PORT=8080
+HTTPS_BIND=127.0.0.1
+HTTPS_PORT=8443
+
+# Caddy owns certificate issuance for this host; mailcow reuses its cert.
+SKIP_LETS_ENCRYPT=y
+ENABLE_SSL_SNI=n
+
+# 32 GiB RAM available — full feature set, no need to trim ClamAV/FTS.
+SKIP_CLAMD=n
+SKIP_FTS=n

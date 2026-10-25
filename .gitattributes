@@ -1,0 +1,13 @@
+# Normalize line endings: repo stores LF, working tree checks out LF.
+# Shell scripts MUST be LF — CRLF breaks `bash` on the Linux target
+# ("bad interpreter: /usr/bin/env bash^M").
+* text=auto eol=lf
+*.sh   text eol=lf
+Makefile text eol=lf
+*.yml  text eol=lf
+*.md   text eol=lf
+*.example text eol=lf
+
+# Binary-ish
+*.png binary
+*.jpg binary

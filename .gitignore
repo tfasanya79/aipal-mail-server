@@ -1,0 +1,19 @@
+# Local, machine-specific config — never commit real secrets
+.env
+*.local
+
+# Mailcow checkout lives on the server, not in this repo
+mailcow-dockerized/
+
+# Generated artifacts
+*.log
+*.pem
+*.key
+cert.pem
+key.pem
+
+# Editor / OS noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

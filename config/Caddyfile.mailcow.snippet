@@ -1,0 +1,25 @@
+# =============================================================================
+# AiPal Mail — Mailcow reverse proxy
+# Managed by scripts/03-caddy-setup.sh — do not hand-edit inside the markers.
+#
+# Caddy terminates TLS for these hostnames and forwards to Mailcow's nginx,
+# which listens on 127.0.0.1:8080 (see mailcow.conf HTTP_BIND/HTTP_PORT).
+# Mailcow's own ACME client is disabled (SKIP_LETS_ENCRYPT=y) and reuses the
+# certificate Caddy obtains — see scripts/04-deploy-certs.sh.
+# =============================================================================
+mail.aipalassist.com, autodiscover.aipalassist.com, autoconfig.aipalassist.com {
+	encode zstd gzip
+
+	log {
+		output file /var/log/caddy/aipal-mail-access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+		format json
+	}
+
+	# Mailcow's UI uses server-sent events / long-polling; don't buffer.
+	reverse_proxy 127.0.0.1:8080 {
+		flush_interval -1
+	}
+}

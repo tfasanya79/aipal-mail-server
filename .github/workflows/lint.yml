@@ -1,0 +1,54 @@
+name: lint
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  shell:
+    name: Shell scripts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: bash syntax check
+        run: |
+          set -e
+          shopt -s nullglob
+          files=(scripts/*.sh scripts/lib/*.sh)
+          printf 'checking: %s\n' "${files[@]}"
+          for f in "${files[@]}"; do bash -n "$f"; done
+
+      - name: shellcheck
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq shellcheck
+          shellcheck -x scripts/*.sh scripts/lib/*.sh
+
+  docs:
+    name: Docs sanity
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Required files exist
+        run: |
+          set -e
+          for f in README.md LICENSE .env.example \
+                   docs/01-prerequisites.md docs/02-dns-godaddy.md \
+                   docs/03-install.md docs/04-operations.md \
+                   docs/05-troubleshooting.md; do
+            test -s "$f" || { echo "missing or empty: $f"; exit 1; }
+          done
+          echo "all docs present"
+
+      - name: No secrets committed
+        run: |
+          set -e
+          if [ -f .env ]; then echo ".env must not be committed"; exit 1; fi
+          if git ls-files | grep -qE '\.(pem|key)$'; then
+            echo "certificate/key files must not be committed"; exit 1
+          fi
+          echo "no secret files tracked"
