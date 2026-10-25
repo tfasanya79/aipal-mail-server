@@ -7,13 +7,16 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 IP="$(detect_public_ip)"
 
 db_q() { # db_q "<sql>"
-	local sql="$1" conf="${MAILCOW_DIR}/mailcow.conf"
+	local sql="$1" conf="${MAILCOW_DIR}/mailcow.conf" cid
 	[[ -f "${conf}" ]] || return 0
 	local dbpass dbuser dbname
 	dbpass="$(sed -n 's/^DBPASS=//p' "${conf}" | tail -1)"
 	dbuser="$(sed -n 's/^DBUSER=//p' "${conf}" | tail -1)"; : "${dbuser:=mailcow}"
 	dbname="$(sed -n 's/^DBNAME=//p' "${conf}" | tail -1)"; : "${dbname:=mailcow}"
-	docker exec -e MYSQL_PWD="${dbpass}" mysql-mailcow \
+	# Compose prefixes container names (mailcowdockerized-mysql-mailcow-1)
+	cid="$(docker ps -qaf 'name=mysql-mailcow')"
+	[[ -n "${cid}" ]] || return 0
+	docker exec -e MYSQL_PWD="${dbpass}" "${cid}" \
 		mysql -u "${dbuser}" -N -B "${dbname}" -e "${sql}" 2>/dev/null
 }
 

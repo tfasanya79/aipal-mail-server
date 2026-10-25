@@ -7,19 +7,37 @@ Symptoms first, then cause. `sudo ./scripts/00-preflight.sh` and
 
 ## Web UI
 
+### `https://mail.aipalassist.com` → redirect loop (`ERR_TOO_MANY_REDIRECTS`)
+
+Caddy is proxying the **plain-HTTP** port. Mailcow's nginx (`location /`) answers
+every request on `HTTP_PORT` with `return 301 https://$host...`, so HTTP → 301 →
+HTTPS → Caddy → HTTP → 301…
+
+Fix: proxy `https://127.0.0.1:8443` (the TLS port), which is what
+`scripts/03-caddy-setup.sh` writes. Check the managed block:
+
+```bash
+sudo sed -n '/>>> aipal-mail-server/,/<<< aipal-mail-server/p' /etc/caddy/Caddyfile
+# must contain: reverse_proxy https://127.0.0.1:8443
+```
+
+Then `sudo ./scripts/03-caddy-setup.sh` and confirm
+`curl -sL -o /dev/null -w '%{http_code} %{num_redirects}\n' https://mail.aipalassist.com/`
+prints `200 0`.
+
 ### `https://mail.aipalassist.com` → 502 Bad Gateway
 
-Caddy is up but Mailcow's nginx isn't answering on `127.0.0.1:8080`.
+Caddy is up but Mailcow's nginx isn't answering on `127.0.0.1:8443`.
 
 ```bash
 cd /opt/mailcow-dockerized
 docker compose ps                        # is nginx-mailcow up?
 docker logs --tail 50 $(docker ps -qf name=nginx-mailcow)
 grep -E '^(HTTP_BIND|HTTP_PORT|HTTPS_BIND|HTTPS_PORT)=' mailcow.conf
-curl -sS -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8080/
+curl -sk -o /dev/null -w '%{http_code}\n' https://127.0.0.1:8443/
 ```
 
-Common causes: `HTTP_PORT` not `8080`, container crashed, or `docker compose up -d`
+Common causes: `HTTPS_PORT` not `8443`, container crashed, or `docker compose up -d`
 was not re-run after editing `mailcow.conf`. Editing that file **requires**
 `docker compose up -d` to recreate the containers.
 

@@ -104,8 +104,11 @@ This edits `/etc/caddy/Caddyfile` **carefully**:
 
 1. backs it up to `Caddyfile.bak.<UTC timestamp>`
 2. strips any previous managed block (between the `# >>> aipal-mail-server` markers)
-3. appends a block serving `mail.` + `autodiscover.` + `autoconfig.` and
-   `reverse_proxy 127.0.0.1:8080`
+3. appends a block serving `mail.` + `autodiscover.` + `autoconfig.` that
+   `reverse_proxy`s to **`https://127.0.0.1:8443`** with
+   `header_up Host {host}` and `transport http { tls … }`.
+   It must be the **HTTPS** port: Mailcow's nginx answers anything on `HTTP_PORT`
+   with an unconditional `301` to HTTPS, so proxying `8080` loops forever.
 4. **validates** with the service env loaded —
    `env <contents of /etc/caddy/status-auth.env> caddy validate …`
 5. on invalid config: **restores the backup and reloads nothing** (your other

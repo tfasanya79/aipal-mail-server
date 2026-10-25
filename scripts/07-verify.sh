@@ -72,10 +72,12 @@ for spec in "993 IMAP implicit" "465 SMTPS implicit" "587 SUBMISSION starttls"; 
 	fi
 done
 
-if curl -fsS -o /dev/null --max-time 10 "https://${MAIL_HOSTNAME}/" 2>/dev/null; then
-	pass "https://${MAIL_HOSTNAME}/ reachable"
+WEB_CODE="$(curl -sL -o /dev/null -w '%{http_code}' --max-time 15 --max-redirs 5 \
+	"https://${MAIL_HOSTNAME}/" 2>/dev/null || true)"
+if [[ "${WEB_CODE}" == "200" ]]; then
+	pass "https://${MAIL_HOSTNAME}/ returns 200"
 else
-	bad "https://${MAIL_HOSTNAME}/ not reachable"
+	bad "https://${MAIL_HOSTNAME}/ returned HTTP ${WEB_CODE:-000} (expected 200)"
 fi
 echo
 

@@ -55,8 +55,10 @@ HTTPS_BIND=127.0.0.1
 HTTPS_PORT=8443
 ```
 
-and Caddy proxies `mail.aipalassist.com` → `127.0.0.1:8080` while holding the TLS
-certificate. This is the officially documented Mailcow-behind-Caddy setup.
+and Caddy proxies `mail.aipalassist.com` → `https://127.0.0.1:8443` while holding
+the TLS certificate. Proxy the **HTTPS** port, not `8080`: Mailcow's nginx replies
+to every request on `HTTP_PORT` with an unconditional `301` to HTTPS, so an
+HTTP upstream loops. This is the officially documented Mailcow-behind-Caddy setup.
 
 ### 2. UFW is active — do not blindly "disable it"
 

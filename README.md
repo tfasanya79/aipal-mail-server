@@ -53,9 +53,9 @@ cannot have them. It binds loopback and Caddy fronts it.
         │                       │              │  :80 :443           │
         │                       │              │  TLS + ACME         │
         │                       │              └──────────┬──────────┘
-        │                       │                         │ reverse_proxy
+        │                       │                         │ reverse_proxy (TLS)
         │                       │                         │ mail.aipalassist.com
-        ▼                       ▼                         ▼ 127.0.0.1:8080
+        ▼                       ▼                         ▼ 127.0.0.1:8443
   ┌──────────────────────────────────────────────────────────────────┐
   │  Mailcow: dockerized                                             │
   │  postfix · dovecot · rspamd · clamav · SOGo · roundcube · mysql  │
@@ -73,6 +73,9 @@ Key design decisions:
   The hourly cron shares Caddy's certificate with Postfix/Dovecot so **993/465/587
   present the same valid cert** as the web UI.
 - **Ports 80/443 are never touched** — Mailcow uses `8080`/`8443` on loopback.
+  Caddy proxies to **`https://127.0.0.1:8443`**, not the plain-HTTP port: Mailcow's
+  nginx answers any request on `HTTP_PORT` with an unconditional `301` to HTTPS,
+  so an HTTP upstream would redirect-loop forever.
 - **UFW stays enabled.** Mailcow's docs say to disable it; on a shared multi-app
   host that's reckless. We add allow rules instead.
 - **No outbound relay.** Port 25 egress works (verified), so nothing costs money.

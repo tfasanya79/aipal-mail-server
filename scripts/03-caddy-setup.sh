@@ -39,7 +39,18 @@ ${SITE_NAMES} {
 		format json
 	}
 
-	reverse_proxy 127.0.0.1:${MAILCOW_HTTP_PORT} {
+	# Mailcow's nginx on HTTP_PORT does an unconditional 301 to the HTTPS URL
+	# (location / { return 301 ...; }), so a plain-HTTP upstream loops forever.
+	# Proxy the TLS port instead and keep the Host header.
+	# Loopback only, so skipping chain verification is acceptable; mailcow uses
+	# a single cert (ENABLE_SSL_SNI=n) that may not match every hostname.
+	reverse_proxy https://127.0.0.1:${MAILCOW_HTTPS_PORT} {
+		header_up Host {host}
+		transport http {
+			tls
+			tls_server_name ${MAIL_HOSTNAME}
+			tls_insecure_skip_verify
+		}
 		flush_interval -1
 	}
 }
@@ -119,11 +130,17 @@ else
 fi
 
 # ---- Local end-to-end check -------------------------------------------------
-if curl -fsS -o /dev/null --max-time 10 \
-	--resolve "${MAIL_HOSTNAME}:443:127.0.0.1" "https://${MAIL_HOSTNAME}/" 2>/dev/null; then
-	ok "https://${MAIL_HOSTNAME}/ answers through Caddy"
+# Must be a real 200. A bare `curl -f` treats a 301 as success and would hide a
+# redirect loop (mailcow's HTTP port redirects to HTTPS).
+CODE="$(curl -sL -o /dev/null -w '%{http_code}' --max-time 15 --max-redirs 5 \
+	--resolve "${MAIL_HOSTNAME}:443:127.0.0.1" "https://${MAIL_HOSTNAME}/" 2>/dev/null || true)"
+if [[ "${CODE}" == "200" ]]; then
+	ok "https://${MAIL_HOSTNAME}/ returns 200 through Caddy"
+elif [[ "${CODE}" == "000" || -z "${CODE}" ]]; then
+	warn "https://${MAIL_HOSTNAME}/ not answering — is mailcow running? (scripts/02-install-mailcow.sh)"
 else
-	warn "https://${MAIL_HOSTNAME}/ not answering yet — is mailcow running? (scripts/02-install-mailcow.sh)"
+	warn "https://${MAIL_HOSTNAME}/ returned HTTP ${CODE} (expected 200)"
+	warn "A 301 here usually means Caddy is proxying mailcow's HTTP port, which redirects."
 fi
 
 hr

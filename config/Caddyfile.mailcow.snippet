@@ -18,8 +18,15 @@ mail.aipalassist.com, autodiscover.aipalassist.com, autoconfig.aipalassist.com {
 		format json
 	}
 
-	# Mailcow's UI uses server-sent events / long-polling; don't buffer.
-	reverse_proxy 127.0.0.1:8080 {
+	# Mailcow's nginx on the plain-HTTP port replies with an unconditional
+	# 301 to HTTPS, so proxy the TLS port. Loopback only.
+	reverse_proxy https://127.0.0.1:8443 {
+		header_up Host {host}
+		transport http {
+			tls
+			tls_server_name mail.aipalassist.com
+			tls_insecure_skip_verify
+		}
 		flush_interval -1
 	}
 }
