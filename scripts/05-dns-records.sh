@@ -6,31 +6,32 @@ source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 
 IP="$(detect_public_ip)"
 
-db_q() { # db_q "<sql>"
-	local sql="$1" conf="${MAILCOW_DIR}/mailcow.conf" cid
-	[[ -f "${conf}" ]] || return 0
-	local dbpass dbuser dbname
-	dbpass="$(sed -n 's/^DBPASS=//p' "${conf}" | tail -1)"
-	dbuser="$(sed -n 's/^DBUSER=//p' "${conf}" | tail -1)"; : "${dbuser:=mailcow}"
-	dbname="$(sed -n 's/^DBNAME=//p' "${conf}" | tail -1)"; : "${dbname:=mailcow}"
-	# Compose prefixes container names (mailcowdockerized-mysql-mailcow-1)
-	cid="$(docker ps -qaf 'name=mysql-mailcow')"
-	[[ -n "${cid}" ]] || return 0
-	docker exec -e MYSQL_PWD="${dbpass}" "${cid}" \
-		mysql -u "${dbuser}" -N -B "${dbname}" -e "${sql}" 2>/dev/null
+# ---- Pull DKIM from mailcow -------------------------------------------------
+# DKIM is NOT in the `domain` table in current mailcow: Rspamd signs from Redis
+# (local.d/dkim_signing.conf sets use_redis = true, key_prefix = DKIM_PRIV_KEYS).
+# The public key lives in the DKIM_PUB_KEYS hash, field = domain.
+CONF="${MAILCOW_DIR}/mailcow.conf"
+REDISPASS="$(sed -n 's/^REDISPASS=//p' "${CONF}" 2>/dev/null | tail -1)"
+REDIS_C="$(docker ps -qaf 'name=redis-mailcow' 2>/dev/null)"
+
+redis_hget() { # redis_hget HASH FIELD
+	[[ -n "${REDIS_C}" && -n "${REDISPASS}" ]] || return 0
+	docker exec "${REDIS_C}" redis-cli -a "${REDISPASS}" --no-auth-warning \
+		HGET "$1" "$2" 2>/dev/null
 }
 
-# ---- Pull DKIM from mailcow -------------------------------------------------
 DKIM_SELECTOR="dkim"
 DKIM_VALUE=""
-ROW="$(db_q "SELECT dkim_selector, dkim_pubkey FROM domain WHERE domain='${DOMAIN}';" || true)"
-if [[ -n "${ROW}" ]]; then
-	DKIM_SELECTOR="$(echo "${ROW}" | cut -f1)"; : "${DKIM_SELECTOR:=dkim}"
-	DKIM_VALUE="$(echo "${ROW}" | cut -f2)"
-	# Normalise to a full DKIM TXT value
-	if [[ -n "${DKIM_VALUE}" && "${DKIM_VALUE}" != v=DKIM1* ]]; then
-		DKIM_VALUE="v=DKIM1; k=rsa; p=${DKIM_VALUE}"
-	fi
+PUBKEY=""
+if [[ -n "${REDIS_C}" ]]; then
+	SEL="$(redis_hget DKIM_SELECTORS "${DOMAIN}")"
+	[[ -n "${SEL}" ]] && DKIM_SELECTOR="${SEL}"
+	PUBKEY="$(redis_hget DKIM_PUB_KEYS "${DOMAIN}")"
+fi
+
+if [[ -n "${PUBKEY}" ]]; then
+	# mailcow's own format (functions.dkim.inc.php)
+	DKIM_VALUE="v=DKIM1;k=rsa;t=s;s=email;p=${PUBKEY}"
 fi
 
 SPF="v=spf1 mx ~all"
@@ -65,7 +66,7 @@ cat <<EOF
   ┌─ TXT / DKIM  (cryptographic signature) ───────────────────────────────
   │ Type : TXT
   │ Name : ${DKIM_SELECTOR}._domainkey
-  │ Value: ${DKIM_VALUE:-<ADD THE DOMAIN IN MAILCOW FIRST — key not found>}
+  │ Value: ${DKIM_VALUE:-<no DKIM key found — add the domain in the mailcow UI first>}
   │ TTL  : 3600
   └────────────────────────────────────────────────────────────────────────
 
