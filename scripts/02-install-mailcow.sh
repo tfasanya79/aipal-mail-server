@@ -5,10 +5,13 @@
 source "$(dirname "${BASH_SOURCE[0]}")/lib/common.sh"
 require_root
 
-compose() {
-	if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi
-}
-COMPOSE="$(compose)"
+if docker compose version >/dev/null 2>&1; then
+	COMPOSE=(docker compose)
+elif command -v docker-compose >/dev/null 2>&1; then
+	COMPOSE=(docker-compose)
+else
+	die "Neither 'docker compose' nor 'docker-compose' is available"
+fi
 
 hr; log "Installing mailcow into ${MAILCOW_DIR}"; hr
 
@@ -77,10 +80,10 @@ ok "Overrides applied"
 
 # ---- Start ------------------------------------------------------------------
 log "Pulling images (this takes a few minutes)"
-"${COMPOSE}" pull 2>&1 | tail -n 5
+"${COMPOSE[@]}" pull 2>&1 | tail -n 5
 
 log "Starting mailcow"
-"${COMPOSE}" up -d 2>&1 | tail -n 20
+"${COMPOSE[@]}" up -d 2>&1 | tail -n 20
 
 log "Waiting for services to settle (up to 120s)"
 for _ in $(seq 1 24); do
@@ -92,8 +95,8 @@ for _ in $(seq 1 24); do
 done
 
 echo
-"${COMPOSE}" ps --format 'table {{.Name}}\t{{.Status}}' 2>/dev/null \
-	|| "${COMPOSE}" ps
+"${COMPOSE[@]}" ps --format 'table {{.Name}}\t{{.Status}}' 2>/dev/null \
+	|| "${COMPOSE[@]}" ps
 hr
 ok "mailcow is installed. It is bound to loopback only — nothing is public yet."
 log "Next steps:"

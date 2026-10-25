@@ -51,12 +51,28 @@ fi
 
 # ---- Verify what the mail services actually present -------------------------
 echo
+log "Waiting for mail services to listen again"
+for _ in $(seq 1 20); do
+	ss -tlnH "sport = :993" 2>/dev/null | grep -q . && break
+	sleep 2
+done
+
 log "Verifying certificate presented on mail ports"
-for spec in "993 IMAP" "465 SMTPS" "587 SUBMISSION"; do
-	port="${spec%% *}"; label="${spec##* }"
-	actual="$(echo | timeout 10 openssl s_client -connect "127.0.0.1:${port}" \
-		-servername "${MAIL_HOSTNAME}" 2>/dev/null \
-		| openssl x509 -noout -subject 2>/dev/null | sed 's/^subject=//')"
+# probe_tls PORT STARTTLS?  — 587 speaks plaintext then upgrades, so it needs
+# -starttls smtp; 993/465 are implicit TLS.
+probe_tls() {
+	local port="$1" mode="${2:-}" extra=() subj
+	[[ "${mode}" == "starttls" ]] && extra=(-starttls smtp)
+	subj="$(echo | timeout 10 openssl s_client -connect "127.0.0.1:${port}" \
+		-servername "${MAIL_HOSTNAME}" "${extra[@]}" 2>/dev/null \
+		| openssl x509 -noout -subject 2>/dev/null | sed 's/^subject=//' || true)"
+	printf '%s' "${subj}"
+}
+
+for spec in "993 IMAP implicit" "465 SMTPS implicit" "587 SUBMISSION starttls"; do
+	set -- ${spec}
+	port="$1"; label="$2"; mode="$3"
+	actual="$(probe_tls "${port}" "${mode}")"
 	if [[ -n "${actual}" ]]; then
 		printf '  %-11s :%s -> %s\n' "${label}" "${port}" "${actual}"
 	else

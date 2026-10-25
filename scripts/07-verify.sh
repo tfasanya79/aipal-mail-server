@@ -51,11 +51,19 @@ echo
 
 # ---- TLS --------------------------------------------------------------------
 log "TLS"
-for spec in "993 IMAP" "465 SMTPS" "587 SUBMISSION"; do
-	port="${spec%% *}"; label="${spec##* }"
-	subj="$(echo | timeout 10 openssl s_client -connect "${MAIL_HOSTNAME}:${port}" \
-		-servername "${MAIL_HOSTNAME}" 2>/dev/null \
-		| openssl x509 -noout -subject 2>/dev/null | sed 's/^subject=//')"
+# 587 is plaintext-then-STARTTLS; 993/465 are implicit TLS.
+tls_subject() {
+	local port="$1" mode="${2:-}" extra=()
+	[[ "${mode}" == "starttls" ]] && extra=(-starttls smtp)
+	echo | timeout 10 openssl s_client -connect "${MAIL_HOSTNAME}:${port}" \
+		-servername "${MAIL_HOSTNAME}" "${extra[@]}" 2>/dev/null \
+		| openssl x509 -noout -subject 2>/dev/null | sed 's/^subject=//' || true
+}
+
+for spec in "993 IMAP implicit" "465 SMTPS implicit" "587 SUBMISSION starttls"; do
+	set -- ${spec}
+	port="$1"; label="$2"; mode="$3"
+	subj="$(tls_subject "${port}" "${mode}")"
 	if [[ -n "${subj}" ]]; then
 		[[ "${subj}" == *"${MAIL_HOSTNAME}"* ]] && pass "${label}:${port} cert = ${subj}" \
 			|| bad "${label}:${port} cert mismatch: ${subj}"
@@ -74,10 +82,16 @@ echo
 # ---- Containers (if run on the server) --------------------------------------
 if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
 	log "mailcow containers"
-	DOWN="$(docker ps -a --filter "name=mailcow" --format '{{.Names}}\t{{.Status}}' 2>/dev/null \
-		| grep -viE 'up' | wc -l)"
-	[[ "${DOWN}" -eq 0 ]] && pass "all mailcow containers up" || warn "${DOWN} container(s) not running"
-	docker ps --filter "name=mailcow" --format '  {{.Names}}  {{.Status}}' 2>/dev/null | head -20
+	# Use docker's own status filter; piping through grep would trip `pipefail`
+	# when nothing matches (and abort the script under `set -e`).
+	RUNNING="$(docker ps --filter name=mailcow --format '{{.Names}}' 2>/dev/null | wc -l)"
+	ALL="$(docker ps -a --filter name=mailcow --format '{{.Names}}' 2>/dev/null | wc -l)"
+	if [[ "${ALL}" -gt 0 && "${RUNNING}" -eq "${ALL}" ]]; then
+		pass "${RUNNING}/${ALL} mailcow containers running"
+	else
+		warn "${RUNNING}/${ALL} mailcow containers running"
+	fi
+	docker ps -a --filter name=mailcow --format '  {{.Names}}  {{.Status}}' 2>/dev/null | head -20
 fi
 
 hr
