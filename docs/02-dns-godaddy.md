@@ -68,16 +68,45 @@ the script when you tighten it.
 - `~all` = soft fail while you ramp up. Move to `-all` (hard fail) once DKIM and
   DMARC are confirmed passing.
 
-## Reverse DNS (PTR) — do this in Hostinger hPanel
+## Reverse DNS (PTR) — set at Hostinger, NOT GoDaddy
 
-PTR is **not** a GoDaddy record; the IP belongs to Hostinger.
+PTR belongs to the IP address, so the domain registrar can't set it.
 
-1. hPanel → **VPS** → select `srv1848374` → **Network** / **IPv4**
-2. Find **Reverse DNS / PTR**
-3. Set `187.55.230.139` → `mail.aipalassist.com`
-4. Save, wait for propagation
+**Hostinger does not reliably expose PTR in hPanel's VPS settings** (their VPS
+"Main settings" page has root password, firewall and hostname reset — no reverse
+DNS field). Changing the VPS hostname does **not** update the PTR automatically.
 
-Verify:
+In order of preference:
+
+### 1. hPanel → VPS → Settings → IP address
+Some plans surface a "Reverse DNS" / "PTR" field on that page. Check it first.
+
+### 2. Hostinger API (works regardless of the UI)
+
+Create a token at **hPanel → API**, then:
+
+```bash
+# 1. find your VM id and the IP address id
+curl -s -H "Authorization: Bearer $HOSTINGER_TOKEN" \
+  https://developers.hostinger.com/api/vps/v1/virtual-machines | jq '.data[] | {id, hostname}'
+
+# 2. set the PTR
+curl -s -X POST \
+  -H "Authorization: Bearer $HOSTINGER_TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"domain":"mail.aipalassist.com"}' \
+  "https://developers.hostinger.com/api/vps/v1/virtual-machines/${VM_ID}/ptr/${IP_ID}"
+```
+
+The response is an action object (`state: success`), not the record itself.
+There is also a CLI: `hostinger vps ptr create <vm-id> <ip-id> --domain mail.aipalassist.com`.
+
+### 3. Support ticket
+
+"Please set the PTR/rDNS for `187.55.230.139` to `mail.aipalassist.com`." Routine
+request, usually handled quickly.
+
+### Verify
 
 ```bash
 dig +short -x 187.55.230.139

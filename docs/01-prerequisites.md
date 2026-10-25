@@ -111,9 +111,12 @@ you send right now is unprotected. You will **edit** it, not add a second one.
 | Current PTR | `139.230.55.187.in-addr.arpa` → `srv1848374.hstgr.cloud` |
 | Required PTR | `187.55.230.139` → `mail.aipalassist.com` |
 
-Set in **hPanel** (VPS → server → Network → IPv4 → Reverse DNS). Not a GoDaddy
-record. It is a strong deliverability signal; most receiving servers tolerate a
-mismatch but Gmail/Outlook score you on it.
+Set at **Hostinger** (the IP owner), not GoDaddy. hPanel usually has no PTR field
+for VPS, so use hPanel → Settings → IP address, else the Hostinger API
+(`.../virtual-machines/{vmId}/ptr/{ipId}`) or a support ticket. Details:
+[02-dns-godaddy.md](02-dns-godaddy.md#reverse-dns-ptr--set-at-hostinger-not-godaddy).
+It is a strong deliverability signal; most receiving servers tolerate a mismatch
+but Gmail/Outlook score you on it.
 
 ## IP reputation
 

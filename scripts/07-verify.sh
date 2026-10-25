@@ -34,7 +34,21 @@ DKIM_TXT="$(resolve_txt "dkim._domainkey.${DOMAIN}" || true)"
 	|| bad "DKIM missing at dkim._domainkey.${DOMAIN}"
 
 DMARC="$(resolve_txt "_dmarc.${DOMAIN}" || true)"
-[[ "${DMARC}" == *v=DMARC1* ]] && pass "DMARC present: ${DMARC}" || bad "DMARC missing on _dmarc.${DOMAIN}"
+if [[ "${DMARC}" != *v=DMARC1* ]]; then
+	bad "DMARC missing on _dmarc.${DOMAIN}"
+else
+	# RFC 7489: exactly one DMARC record. A registrar default plus a hand-added
+	# record is the classic mistake and makes the policy undefined.
+	DMARC_COUNT="$(dig +short TXT "_dmarc.${DOMAIN}" @1.1.1.1 2>/dev/null | grep -ci 'v=DMARC1' || true)"
+	: "${DMARC_COUNT:=0}"
+	if [[ "${DMARC_COUNT}" -gt 1 ]]; then
+		bad "${DMARC_COUNT} DMARC records on _dmarc.${DOMAIN} — only ONE is allowed"
+		printf '        %s\n' "${DMARC}"
+		printf '        Delete the registrar default (often rua=...onsecureserver.net)\n'
+	else
+		pass "DMARC present (1 record): ${DMARC}"
+	fi
+fi
 
 PTR="$(dig +short -x "${IP}" @1.1.1.1 2>/dev/null | head -1 | sed 's/\.$//')"
 [[ "${PTR}" == "${MAIL_HOSTNAME}" ]] && pass "PTR ${IP} -> ${PTR}" \

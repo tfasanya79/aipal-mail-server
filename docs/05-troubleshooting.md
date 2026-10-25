@@ -306,9 +306,11 @@ sudo ./scripts/04-deploy-certs.sh
 
 ### I can't find where to set PTR
 
-hPanel → VPS → server → **Network** / **IPv4** → Reverse DNS. If your plan's
-panel lacks the field, open a ticket: "Please set the PTR for 187.55.230.139 to
-mail.aipalassist.com." It's a standard request.
+There is usually no PTR field in hPanel's VPS settings. Try **VPS → Settings →
+IP address** first; if it's absent, use the Hostinger API
+(`POST /api/vps/v1/virtual-machines/{vmId}/ptr/{ipId}` with
+`{"domain":"mail.aipalassist.com"}`) or open a ticket. Full details and commands:
+[02-dns-godaddy.md](02-dns-godaddy.md#reverse-dns-ptr--set-at-hostinger-not-godaddy).
 
 ---
 
