@@ -237,6 +237,36 @@ docker logs --tail 200 $(docker ps -qf name=postfix-mailcow) | grep -iE 'reject|
 Typical: `550 5.7.1 ... blocked using Spamhaus` (IP reputation — check the blocklist
 and request delisting), or `554 ... no PTR record`.
 
+### SPF fails (softfail) even though the SPF record looks right
+
+Check **which IP the mail actually left from**. Postfix defaults to
+`smtp_address_preference = any` and will use IPv6 if the destination has an
+AAAA — while your SPF is almost always aligned to IPv4 only.
+
+Diagnose with a public verifier that emails you a report:
+
+```bash
+# send, then read the reply from the mailbox
+docker exec $(docker ps -qaf name=dovecot-mailcow) \
+  doveadm fetch -u info@aipalassist.com "text" mailbox INBOX | grep -a "SPF check"
+```
+
+If the report says `IP(s) verified: policy.iprev="2a02:..."` (an IPv6 address)
+and SPF softfails, that is the cause. On this host Hostinger exposes **no IPv6
+PTR** (the API rejects it with `VPS:2004`), so the clean fix is to prefer IPv4:
+
+```bash
+echo 'smtp_address_preference = ipv4' | sudo tee -a /opt/mailcow-dockerized/data/conf/postfix/extra.cf
+docker restart $(docker ps -qaf name=postfix-mailcow)
+docker exec $(docker ps -qaf name=postfix-mailcow) postconf -h smtp_address_preference   # -> ipv4
+```
+
+`extra.cf` is appended to `main.cf` at container start, so it survives restarts
+and updates. `scripts/02-install-mailcow.sh` applies this automatically.
+
+Alternatives: add `ip6:<address>` to the SPF record, or add an `AAAA` for
+`mail.` so the `mx` mechanism covers IPv6 (then fix the IPv6 PTR if you can).
+
 ### Outbound mail is throttled
 
 Expected. Hostinger rate-limits egress to roughly **5 messages/minute**. For

@@ -78,6 +78,21 @@ set_conf MAILCOW_TZ                  "${MAILCOW_TZ}"
 grep -E '^(MAILCOW_HOSTNAME|HTTP_BIND|HTTP_PORT|HTTPS_BIND|HTTPS_PORT|SKIP_LETS_ENCRYPT|ADDITIONAL_SERVER_NAMES)=' mailcow.conf | sed 's/^/  /'
 ok "Overrides applied"
 
+# ---- Prefer IPv4 for outbound ----------------------------------------------
+# Postfix defaults to smtp_address_preference=any and will happily send over
+# IPv6. On this host SPF is `mx` (i.e. the IPv4 A record) and Hostinger exposes
+# no IPv6 PTR (the API rejects it: VPS:2004), so IPv6 sends score SPF softfail.
+# extra.cf is appended to main.cf at container start, so later values win.
+PF_EXTRA="${MAILCOW_DIR}/data/conf/postfix/extra.cf"
+mkdir -p "$(dirname "${PF_EXTRA}")"
+touch "${PF_EXTRA}"
+if ! grep -q '^smtp_address_preference' "${PF_EXTRA}"; then
+	printf '%s\n' \
+		'# Prefer IPv4: SPF(mx) and the PTR are IPv4-aligned; no IPv6 PTR available' \
+		'smtp_address_preference = ipv4' >> "${PF_EXTRA}"
+	ok "Set smtp_address_preference = ipv4 in postfix extra.cf"
+fi
+
 # ---- Start ------------------------------------------------------------------
 log "Pulling images (this takes a few minutes)"
 "${COMPOSE[@]}" pull 2>&1 | tail -n 5
