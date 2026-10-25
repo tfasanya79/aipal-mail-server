@@ -5,6 +5,65 @@ Symptoms first, then cause. `sudo ./scripts/00-preflight.sh` and
 
 ---
 
+## Admin login
+
+### "Login failed" with `admin` / `moohoo`
+
+The default account **is** created as `admin` / `moohoo` — mailcow inserts a
+hardcoded `{SSHA256}` hash at first boot. If that fails, the UI received a
+different password than you think. Usual causes:
+
+- **Browser password manager autofilled a stale password** over the field. The
+  autofill dropdown is a strong tell. Use a private/incognito window, or clear
+  the saved entry for this site, and type the password manually.
+- **Using the "User Login" (email address) form** with a bare `admin`. That form
+  wants a mailbox address; the admin login is the link at the bottom
+  ("Log in as admin") or just submit `admin` as the username.
+- A trailing space pasted along with the password.
+
+Confirm what the database actually holds before assuming it's broken:
+
+```bash
+CONF=/opt/mailcow-dockerized/mailcow.conf
+DP=$(sudo sed -n 's/^DBPASS=//p' $CONF); DU=$(sudo sed -n 's/^DBUSER=//p' $CONF); DN=$(sudo sed -n 's/^DBNAME=//p' $CONF)
+M=$(docker ps -qaf name=mysql-mailcow)
+docker exec -e MYSQL_PWD="$DP" "$M" mysql -u "$DU" -N -B "$DN" \
+  -e "select username, active, superadmin, password from admin;"
+```
+
+A hash starting `{SSHA256}K8eVJ6YsZbQCfuJvSUbaQ...` is mailcow's built-in
+`moohoo` default, untouched.
+
+### Reset the admin password from the host
+
+No UI and no API key required — it writes a properly-formatted `{SSHA256}` hash
+and proves it verifies:
+
+```bash
+sudo ./scripts/08-set-admin-password.sh              # generate a random password
+sudo ./scripts/08-set-admin-password.sh 'MyNewPass!' # set a specific one
+# or:
+make admin-pass PW='MyNewPass!'
+```
+
+It also sets `active=1`, which clears a lockout. Change the resulting password in
+the UI immediately (Configuration → Admins).
+
+### Locked out after repeated failures
+
+mailcow's fail2ban (the `netfilter` container) can ban the client IP. The ban is
+temporary, but you can check and clear it:
+
+```bash
+docker exec $(docker ps -qaf name=netfilter-mailcow) fail2ban-client status
+docker exec $(docker ps -qaf name=netfilter-mailcow) fail2ban-client set mailcow unbanip <YOUR_IP>
+```
+
+`scripts/08-set-admin-password.sh` re-activates the account but does not clear an
+IP ban.
+
+---
+
 ## Web UI
 
 ### `https://mail.aipalassist.com` → redirect loop (`ERR_TOO_MANY_REDIRECTS`)

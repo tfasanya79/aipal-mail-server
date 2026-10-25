@@ -138,7 +138,8 @@ against the live server, not assumed:
 │   ├── 04-deploy-certs.sh    # share Caddy cert w/ mail services + cron
 │   ├── 05-dns-records.sh     # print GoDaddy records incl. DKIM
 │   ├── 06-create-mailbox.sh  # create mailbox via API
-│   └── 07-verify.sh          # end-to-end verification
+│   ├── 07-verify.sh          # end-to-end verification
+│   └── 08-set-admin-password.sh # reset admin pw from the host (no UI/API)
 └── docs/
     ├── 01-prerequisites.md   # verified facts, gotchas
     ├── 02-dns-godaddy.md     # records, DMARC edit, PTR

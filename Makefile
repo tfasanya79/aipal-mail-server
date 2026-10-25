@@ -6,7 +6,7 @@
 SHELL := /bin/bash
 HOST  ?= aipal-vm2
 
-.PHONY: help preflight bootstrap install caddy certs dns verify mailbox \
+.PHONY: help preflight bootstrap install caddy certs dns verify mailbox admin-pass \
         ssh-preflight ssh-bootstrap ssh-install ssh-all all
 
 help: ## Show this help
@@ -36,6 +36,9 @@ verify: ## End-to-end DNS/TLS/port/container checks
 
 mailbox: ## Create a mailbox: make mailbox LP=info [PW=secret] [QUOTA=3072]
 	./scripts/06-create-mailbox.sh "$(LP)" "$(PW)" "$(QUOTA)"
+
+admin-pass: ## Reset admin password: make admin-pass [PW='newpass']
+	sudo ./scripts/08-set-admin-password.sh "$(PW)"
 
 # ---- convenience: run over SSH from your workstation -----------------------
 ssh-preflight: ## Run preflight on $(HOST)
