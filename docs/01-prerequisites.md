@@ -11,8 +11,8 @@ from a tutorial. Re-run `sudo ./scripts/00-preflight.sh` any time to re-check.
 | Location | France – Paris |
 | OS | Ubuntu **24.04.4 LTS** (KVM, kernel 6.8) |
 | CPU / RAM / Disk | 8 vCPU / **32 GiB** / 400 GiB NVMe (≈332 GiB free) |
-| Public IPv4 | `187.55.230.139` |
-| Hostname (current) | `srv1848374.hstgr.cloud` → changed to `mail.aipalassist.com` |
+| Public IPv4 | `<your-vps-ip>` |
+| Hostname (current) | `<provider-hostname>` → changed to `mail.aipalassist.com` |
 | Docker | 29.6.2, Compose v5.3.1 |
 | Swap | **0 B** → bootstrap adds a 2 GiB swapfile |
 
@@ -108,8 +108,8 @@ you send right now is unprotected. You will **edit** it, not add a second one.
 
 | | |
 | --- | --- |
-| Current PTR | `139.230.55.187.in-addr.arpa` → `srv1848374.hstgr.cloud` |
-| Required PTR | `187.55.230.139` → `mail.aipalassist.com` |
+| Current PTR | `<reverse-dns-name>` → `<provider-hostname>` |
+| Required PTR | `<your-vps-ip>` → `mail.aipalassist.com` |
 
 Set at **Hostinger** (the IP owner), not GoDaddy. hPanel usually has no PTR field
 for VPS, so use hPanel → Settings → IP address, else the Hostinger API

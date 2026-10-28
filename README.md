@@ -23,7 +23,7 @@ sudo ./scripts/01-bootstrap-host.sh
 sudo ./scripts/02-install-mailcow.sh
 sudo ./scripts/03-caddy-setup.sh
 sudo ./scripts/04-deploy-certs.sh
-# → add domain + mailboxes at https://mail.aipalassist.com/admin/ (admin/moohoo)
+# → add domain + mailboxes at https://mail.aipalassist.com/admin/ (admin / <strong-password>)
 #   NOTE: /admin/ is the ADMIN login; the root page "/" is the mailbox login
 sudo ./scripts/05-dns-records.sh    # enter MX/SPF/DKIM/DMARC in GoDaddy
 # → set PTR in Hostinger hPanel
@@ -92,10 +92,10 @@ Key design decisions:
 | "Port 25 might be blocked — ask Hostinger to unblock it or use a relay" | **Port 25 is open.** Verified by TCP connection to Gmail's MX from the box. Hostinger rate-limits to ~5 msg/min but does not block. | **High — relaying is unnecessary** |
 | "Set MX, SPF, DKIM, DMARC" (implied clean slate) | A **GoDaddy default DMARC record already exists** (`p=quarantine`, `rua` → `onsecureserver.net`). Adding a second one is invalid; it must be *edited*. | Medium |
 | "Use `mail.aipalassist.com` as mailcow hostname" | Correct — but installing Mailcow normally binds :80/:443 and would **collide with Caddy**. The documented reverse-proxy path is required. | **High** |
-| Generic: "point PTR at your mail host" | Correct and important; current PTR is `srv1848374.hstgr.cloud`. Set in **hPanel**, not GoDaddy. | Medium |
+| Generic: "point PTR at your mail host" | Correct and important; current PTR is `<provider-hostname>`. Set in **hPanel**, not GoDaddy. | Medium |
 
 Also silently missing from the original: swap was 0 B, and the system hostname
-was `srv1848374.hstgr.cloud`.
+was `<provider-hostname>`.
 
 ---
 
@@ -108,13 +108,13 @@ against the live server, not assumed:
 | --- | --- |
 | Host | Hostinger KVM 8, Ubuntu 24.04.4 LTS, Paris |
 | Resources | 8 vCPU / 32 GiB RAM / ~332 GiB free |
-| IPv4 | `187.55.230.139` |
+| IPv4 | `<your-vps-ip>` |
 | Port 25 egress | **open** (Gmail MX reachable) |
 | Mail ports 25/465/587/143/993/110/995/4190 | all free |
 | Ports 80/443 | owned by Caddy 2.6.2 → proxied |
 | UFW | active (22/80/443) → extended, never disabled |
 | Swap | 0 B → 2 GiB added |
-| PTR | `srv1848374.hstgr.cloud` → change to `mail.aipalassist.com` |
+| PTR | `<provider-hostname>` → change to `mail.aipalassist.com` |
 | Blocklists | clean on Spamhaus/SpamCop/Barracuda/SORBS/CBL |
 | DNS | GoDaddy (`ns49/ns50.domaincontrol.com`); no MX/SPF/DKIM; default DMARC present |
 
@@ -196,7 +196,7 @@ Two ongoing obligations make or break it long-term:
 ## Security
 
 - Never commit `.env` (gitignored) — it holds the mailcow API key.
-- Change `admin / moohoo` before exposing anything, and enable 2FA.
+- Change `admin / <strong-password>` before exposing anything, and enable 2FA.
 - Prefer 993/465/587; keep 143/110 closed.
 - Backup artifacts (`*.pem`, `*.key`) are gitignored.
 

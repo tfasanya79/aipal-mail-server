@@ -7,7 +7,7 @@ Symptoms first, then cause. `sudo ./scripts/00-preflight.sh` and
 
 ## Admin login
 
-### "Login failed" with `admin` / `moohoo` (or any admin password)
+### "Login failed" with `admin` / `<strong-password>` (or any admin password)
 
 **This is almost always the wrong login page, not a wrong password.**
 
@@ -51,7 +51,7 @@ docker exec -e MYSQL_PWD="$DP" "$M" mysql -u "$DU" -N -B "$DN" \
 ```
 
 A hash starting `{SSHA256}K8eVJ6YsZbQCfuJvSUbaQ...` is mailcow's built-in
-`moohoo` default, untouched.
+`<strong-password>` default, untouched.
 
 Only after ruling out the `/admin/` issue should you suspect a stale autofilled
 password (the autofill dropdown is the tell — use a private window or clear the
@@ -205,7 +205,7 @@ dig +short MX   aipalassist.com                    @1.1.1.1
 dig +short TXT  aipalassist.com                    @1.1.1.1   # exactly ONE spf1
 dig +short TXT  dkim._domainkey.aipalassist.com    @1.1.1.1
 dig +short TXT  _dmarc.aipalassist.com             @1.1.1.1
-dig +short -x   187.55.230.139                     @1.1.1.1   # must be mail.aipalassist.com
+dig +short -x   <your-vps-ip>                     @1.1.1.1   # must be mail.aipalassist.com
 ```
 
 Then:

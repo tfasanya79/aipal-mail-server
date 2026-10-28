@@ -118,6 +118,6 @@ log "Next steps:"
 echo "  1. sudo ./scripts/03-caddy-setup.sh     # proxy ${MAIL_HOSTNAME} via Caddy (issues TLS)"
 echo "  2. sudo ./scripts/04-deploy-certs.sh    # share Caddy's cert with postfix/dovecot"
 echo "  3. Add domain + mailboxes in the UI: https://${MAIL_HOSTNAME}"
-echo "     (default login admin / moohoo — change immediately)"
+echo "     (default login admin / <strong-password> — change immediately)"
 echo "  4. sudo ./scripts/05-dns-records.sh     # emit the GoDaddy records incl. DKIM"
 hr

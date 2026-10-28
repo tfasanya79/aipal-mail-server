@@ -131,7 +131,7 @@ check covers most failure modes.
 
 ## Security checklist
 
-- [ ] Changed the `admin / moohoo` password
+- [ ] Changed the `admin / <strong-password>` password
 - [ ] Enabled 2FA on the Mailcow admin account (UI → Configuration → Admin)
 - [ ] Restrict admin UI by IP if convenient (Mailcow → Netfilter)
 - [ ] No plaintext ports exposed: use 993/465/587 only, not 143/110

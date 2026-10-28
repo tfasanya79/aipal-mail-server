@@ -18,13 +18,13 @@ GoDaddy DNS → `aipalassist.com` → **DNS / Manage DNS** → *Add New Record*.
 
 | # | Type | Name (Host) | Value | TTL | Priority |
 | --- | --- | --- | --- | --- | --- |
-| 1 | `A` | `mail` | `187.55.230.139` | 1 hour | — |
+| 1 | `A` | `mail` | `<your-vps-ip>` | 1 hour | — |
 | 2 | `MX` | `@` | `mail.aipalassist.com` | 1 hour | `10` |
 | 3 | `TXT` | `@` | `v=spf1 mx ~all` | 1 hour | — |
 | 4 | `TXT` | `dkim._domainkey` | *(from script — long `v=DKIM1; k=rsa; p=…`)* | 1 hour | — |
 | 5 | `TXT` | `_dmarc` | `v=DMARC1; p=none; rua=mailto:dmarc@aipalassist.com; adkim=r; aspf=r; pct=100` | 1 hour | — |
-| 6 | `A` | `autodiscover` | `187.55.230.139` | 1 hour | — |
-| 7 | `A` | `autoconfig` | `187.55.230.139` | 1 hour | — |
+| 6 | `A` | `autodiscover` | `<your-vps-ip>` | 1 hour | — |
+| 7 | `A` | `autoconfig` | `<your-vps-ip>` | 1 hour | — |
 
 Records 6–7 are optional but make Outlook/Thunderbird auto-configure themselves
 instead of asking the user for server names.
@@ -103,25 +103,25 @@ There is also a CLI: `hostinger vps ptr create <vm-id> <ip-id> --domain mail.aip
 
 ### 3. Support ticket
 
-"Please set the PTR/rDNS for `187.55.230.139` to `mail.aipalassist.com`." Routine
+"Please set the PTR/rDNS for `<your-vps-ip>` to `mail.aipalassist.com`." Routine
 request, usually handled quickly.
 
 ### Verify
 
 ```bash
-dig +short -x 187.55.230.139
+dig +short -x <your-vps-ip>
 # must print: mail.aipalassist.com.
 ```
 
 If hPanel has no PTR field for your plan, open a Hostinger ticket and ask them to
-set the PTR for `187.55.230.139` to `mail.aipalassist.com`. It is a routine
+set the PTR for `<your-vps-ip>` to `mail.aipalassist.com`. It is a routine
 request.
 
 Forward and reverse **must match**:
 
 ```
-A    mail.aipalassist.com -> 187.55.230.139
-PTR  187.55.230.139       -> mail.aipalassist.com
+A    mail.aipalassist.com -> <your-vps-ip>
+PTR  <your-vps-ip>       -> mail.aipalassist.com
 ```
 
 ## Propagation checks
@@ -132,7 +132,7 @@ dig +short MX   aipalassist.com       @1.1.1.1
 dig +short TXT  aipalassist.com       @1.1.1.1
 dig +short TXT  dkim._domainkey.aipalassist.com @1.1.1.1
 dig +short TXT  _dmarc.aipalassist.com @1.1.1.1
-dig +short -x   187.55.230.139        @1.1.1.1
+dig +short -x   <your-vps-ip>        @1.1.1.1
 ```
 
 GoDaddy's minimum TTL is 1 hour. Mailcow's own DNS sanity guide is worth a read:

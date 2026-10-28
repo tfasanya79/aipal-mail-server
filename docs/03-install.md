@@ -45,12 +45,12 @@ Create just this one first so TLS issuance can succeed:
 
 | Type | Name | Value |
 | --- | --- | --- |
-| `A` | `mail` | `187.55.230.139` |
+| `A` | `mail` | `<your-vps-ip>` |
 
 Confirm before moving on:
 
 ```bash
-dig +short A mail.aipalassist.com @1.1.1.1   # → 187.55.230.139
+dig +short A mail.aipalassist.com @1.1.1.1   # → <your-vps-ip>
 ```
 
 Full DNS guidance: [02-dns-godaddy.md](02-dns-godaddy.md). The remaining records
@@ -148,12 +148,12 @@ defaults:
 
 ```
 https://mail.aipalassist.com/admin/
-admin / moohoo
+admin / <strong-password>
 ```
 
 > The root page `/` is the **mailbox** (email address) login. Logging in there as
 > `admin` always fails — see
-> [05-troubleshooting.md](05-troubleshooting.md#login-failed-with-admin--moohoo-or-any-admin-password).
+> [05-troubleshooting.md](05-troubleshooting.md#login-failed-with-admin--<strong-password>-or-any-admin-password).
 
 **Change that password immediately.**
 

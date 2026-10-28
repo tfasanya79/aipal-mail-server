@@ -30,7 +30,7 @@ printf '  docker %s / compose %s\n' \
 log "Setting system hostname to ${MAIL_HOSTNAME}"
 hostnamectl set-hostname "${MAIL_HOSTNAME}"
 
-# Ensure the FQDN resolves locally and before the hstgr.cloud entry
+# Ensure the FQDN resolves locally and before the <provider-hostname> entry
 if grep -qE "^127\.0\.1\.1" /etc/hosts; then
 	sed -i "s/^127\.0\.1\.1.*/127.0.1.1\t${MAIL_HOSTNAME} ${MAIL_HOSTNAME%%.*}/" /etc/hosts
 else
